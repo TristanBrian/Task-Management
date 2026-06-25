@@ -1,5 +1,6 @@
 # Environment / secrets
 *.env
+*.env.example
 *.env.local
 .env.*.local
 application-local.properties
@@ -10,3 +11,27 @@ application-dev.properties
 **/target/
 **/node_modules/
 **/dist/
+
+frontend/.angular/
+frontend/.angular/cache/frontend/.angular/cache/
+
+# Backend
+**/target/
+*.jar
+*.war
+*.log
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.angular/cache/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Environment
+*.env
+*.env.local
