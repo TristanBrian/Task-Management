@@ -1,0 +1,82 @@
+<div class="task-dialog-container">
+    <!-- Header -->
+    <div class="dialog-header">
+      <div class="header-icon">
+        <mat-icon>{{ isEdit ? 'edit' : 'add_circle_outline' }}</mat-icon>
+      </div>
+      <div>
+        <h2>{{ isEdit ? 'Edit Task' : 'Create New Task' }}</h2>
+        <p class="subtitle">{{ isEdit ? 'Update the task details below' : 'Fill in the details to add a new task' }}</p>
+      </div>
+      <button mat-icon-button class="close-btn" (click)="onCancel()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  
+    <mat-divider></mat-divider>
+  
+    <!-- Form -->
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="task-form">
+      <!-- Title -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Title</mat-label>
+        <input matInput formControlName="title" placeholder="Enter a descriptive title" autofocus />
+        <mat-icon matPrefix>title</mat-icon>
+        <mat-error *ngIf="titleControl?.invalid && titleControl?.touched">
+          <span *ngIf="titleControl?.hasError('required')">Title is required</span>
+          <span *ngIf="titleControl?.hasError('minlength')">At least 3 characters</span>
+        </mat-error>
+      </mat-form-field>
+  
+      <!-- Description -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Description</mat-label>
+        <textarea matInput formControlName="description" rows="3" placeholder="Add any extra details…"></textarea>
+        <mat-icon matPrefix>description</mat-icon>
+        <mat-hint align="end">{{ (descriptionControl?.value?.length || 0) }}/500</mat-hint>
+        <mat-error *ngIf="descriptionControl?.hasError('maxlength')">
+          Maximum 500 characters
+        </mat-error>
+      </mat-form-field>
+  
+      <!-- Status -->
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Status</mat-label>
+        <mat-select formControlName="status">
+          <mat-option *ngFor="let opt of statusOptions" [value]="opt.value">
+            <span class="status-option">
+              <span class="status-dot" [style.background]="opt.color"></span>
+              {{ opt.label }}
+            </span>
+          </mat-option>
+        </mat-select>
+        <mat-icon matPrefix>flag</mat-icon>
+        <mat-error *ngIf="form.get('status')?.invalid && form.get('status')?.touched">
+          Please select a status
+        </mat-error>
+      </mat-form-field>
+  
+      <!-- Actions -->
+      <div class="form-actions">
+        <button mat-button type="button" (click)="onCancel()" [disabled]="loading">
+          Cancel
+        </button>
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          [disabled]="form.invalid || loading"
+          class="submit-btn"
+          [class.loading]="loading"
+        >
+          <ng-container *ngIf="!loading">
+            <mat-icon>{{ isEdit ? 'save' : 'add' }}</mat-icon>
+            {{ isEdit ? 'Update' : 'Create' }}
+          </ng-container>
+          <ng-container *ngIf="loading">
+            <mat-spinner diameter="20"></mat-spinner>
+          </ng-container>
+        </button>
+      </div>
+    </form>
+  </div>

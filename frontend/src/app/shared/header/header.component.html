@@ -1,0 +1,7 @@
+<mat-toolbar color="primary">
+    <span>Task Manager</span>
+    <span class="spacer"></span>
+    <button mat-button routerLink="/tasks" *ngIf="authService.isLoggedIn()">Tasks</button>
+    <button mat-button (click)="logout()" *ngIf="authService.isLoggedIn()">Logout</button>
+    <button mat-button routerLink="/login" *ngIf="!authService.isLoggedIn()">Login</button>
+  </mat-toolbar>
