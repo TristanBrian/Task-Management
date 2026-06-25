@@ -1,0 +1,12 @@
+# Environment / secrets
+*.env
+*.env.local
+.env.*.local
+application-local.properties
+application-dev.properties
+*.secret.properties
+
+# Build artifacts
+**/target/
+**/node_modules/
+**/dist/
