@@ -1,5 +1,7 @@
 package com.example.taskmanagement.controller;
 
+import com.example.taskmanagement.dto.UserRequest;
+import com.example.taskmanagement.dto.UserResponse;
 import com.example.taskmanagement.model.User;
 import com.example.taskmanagement.service.AuthService;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +28,21 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody User user) {
+    public ResponseEntity<?> register(@Valid @RequestBody UserRequest userRequest) {
+        // Convert DTO to entity
+        User user = new User();
+        user.setUsername(userRequest.getUsername());
+        user.setEmail(userRequest.getEmail());
+        user.setPassword(userRequest.getPassword()); // will be encoded in service
+
         User registered = authService.register(user);
-        return ResponseEntity.ok(Map.of("message", "User registered", "id", registered.getId()));
+
+        // Convert entity to response DTO
+        UserResponse response = new UserResponse();
+        response.setId(registered.getId());
+        response.setUsername(registered.getUsername());
+        response.setEmail(registered.getEmail());
+
+        return ResponseEntity.ok(Map.of("id", response.getId(), "message", "User registered"));
     }
 }
