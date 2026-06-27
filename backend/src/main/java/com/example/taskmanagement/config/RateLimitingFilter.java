@@ -15,7 +15,7 @@ import java.time.Duration;
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
-    private static final int LIMIT = 100;
+    private static final int LIMIT = 100;   // requests per minute
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
     @Autowired
@@ -27,17 +27,25 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        String clientIp = request.getRemoteAddr();
+        // Get real client IP from X-Forwarded-For header
+        String clientIp = request.getHeader("X-Forwarded-For");
+        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
+            clientIp = request.getRemoteAddr();
+        } else {
+            // In case of multiple IPs, take the first one
+            clientIp = clientIp.split(",")[0].trim();
+        }
+
         String key = "rate:limiter:" + clientIp;
 
-        // Atomic increment – returns the new count
+        // Atomic increment – creates key with 1 if it doesn't exist
         Long count = redisTemplate.opsForValue().increment(key);
-        // Set TTL on first request
+        // Set TTL only on first request
         if (count == 1) {
             redisTemplate.expire(key, WINDOW);
         }
 
-        // Log the count – you'll see this in Render logs
+        // Log for debugging (visible in Render logs)
         logger.info("Rate limit count for IP " + clientIp + ": " + count);
 
         if (count > LIMIT) {
@@ -49,6 +57,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    // Skip rate limiting for public endpoints (registration, login, Swagger)
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
