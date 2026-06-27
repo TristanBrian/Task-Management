@@ -19,7 +19,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
     @Autowired
-    private RedisTemplate<String, Integer> redisTemplate;
+    private RedisTemplate<String, Long> redisTemplate;   // Use Long instead of Integer
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -30,15 +30,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String clientIp = request.getRemoteAddr();
         String key = "rate:limiter:" + clientIp;
 
-        Integer count = redisTemplate.opsForValue().get(key);
-        if (count == null) {
-            redisTemplate.opsForValue().set(key, 1, WINDOW);
-            count = 1;
-        } else {
-            Long newCount = redisTemplate.opsForValue().increment(key);
-            count = newCount.intValue();
+        // Atomic increment – creates key with 1 if it doesn't exist
+        Long count = redisTemplate.opsForValue().increment(key);
+        // Set TTL only when it's the first request
+        if (count == 1) {
             redisTemplate.expire(key, WINDOW);
         }
+
+        // Log for debugging (will appear in Render logs)
+        logger.info("Rate limit count for " + clientIp + ": " + count);
 
         if (count > LIMIT) {
             response.setStatus(429);
@@ -49,7 +49,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    // ✅ NEW: Skip rate limiting for public endpoints
+    // Skip rate limiting for public endpoints
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
