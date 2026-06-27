@@ -1,0 +1,40 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8
+    container_name: task-db
+    environment:
+      MYSQL_DATABASE: taskdb
+      MYSQL_ROOT_PASSWORD: popino123
+    ports:
+      - "3306:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: task-backend
+    depends_on:
+      - db
+    environment:
+      DB_URL: ${DB_URL}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: task-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db-data:

@@ -1,12 +1,17 @@
-# Stage 1: build
-FROM node:14-alpine AS build
+FROM node:20-alpine AS build
 WORKDIR /app
+
+# Copy package files first (better caching)
 COPY package*.json ./
-RUN npm install
+
+# Install with legacy peer deps to avoid conflicts
+RUN npm install --legacy-peer-deps
+
+# Copy source and build
 COPY . .
 RUN npm run build --prod
 
-# Stage 2: serve with nginx
+# Production stage
 FROM nginx:alpine
 COPY --from=build /app/dist/task-management-frontend /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
