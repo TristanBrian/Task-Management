@@ -158,6 +158,8 @@ mvn clean test
 - **JaCoCo coverage report** – available at `target/site/jacoco/index.html`
 - **Integration tests** – use H2 in‑memory database and spin up a test context
 
+![Task Management App Screenshot](screen/test1.png)
+
 ### Frontend
 ```bash
 cd frontend
@@ -209,6 +211,7 @@ task-management/
 - Rate limiting protects against abuse (100 requests/minute per IP).
 
 ---
+![Task Management App Screenshot](screen/test.png)
 
 ## 🚀 Production Readiness
 
