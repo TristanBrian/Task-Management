@@ -14,6 +14,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -21,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ActiveProfiles("test")
 class TaskControllerIntegrationTest {
 
     @Autowired
@@ -40,16 +42,15 @@ class TaskControllerIntegrationTest {
 
     @BeforeEach
     void cleanAndSetup() {
-        // Clear all data
         taskRepository.deleteAll();
         userRepository.deleteAll();
 
-        // Create a test user that matches @WithMockUser("testuser")
+        // Create a test user
         User user = new User();
         user.setUsername("testuser");
-        user.setPassword("password");   // will be encoded by authService.register()
+        user.setPassword("password");
         user.setEmail("test@test.com");
-        authService.register(user);     // also handles unique constraints
+        authService.register(user);
     }
 
     @Test
@@ -91,7 +92,6 @@ class TaskControllerIntegrationTest {
     @Test
     @WithMockUser(username = "testuser")
     void getTasks_WithStatusFilter_ShouldReturnFilteredPage() throws Exception {
-        // Create one COMPLETED task
         Task completed = new Task();
         completed.setTitle("Completed Task");
         completed.setStatus(TaskStatus.COMPLETED);
@@ -100,7 +100,6 @@ class TaskControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(completed)))
                 .andExpect(status().isOk());
 
-        // Create a PENDING task (should not appear in the COMPLETED filter)
         Task pending = new Task();
         pending.setTitle("Pending Task");
         pending.setStatus(TaskStatus.PENDING);
@@ -109,7 +108,6 @@ class TaskControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(pending)))
                 .andExpect(status().isOk());
 
-        // Query for COMPLETED tasks
         mockMvc.perform(get("/api/tasks?status=COMPLETED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
