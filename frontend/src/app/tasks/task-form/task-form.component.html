@@ -1,48 +1,52 @@
 <div class="task-dialog-container">
-    <!-- Header -->
     <div class="dialog-header">
-      <div class="header-icon">
-        <mat-icon>{{ isEdit ? 'edit' : 'add_circle_outline' }}</mat-icon>
+      <div class="header-left">
+        <div class="header-icon-container" [ngClass]="isEdit ? 'edit-mode' : 'create-mode'">
+          <mat-icon>{{ isEdit ? 'edit' : 'add_task' }}</mat-icon>
+        </div>
+        <div class="header-text">
+          <h2>{{ isEdit ? 'Edit Task' : 'Create New Task' }}</h2>
+          <p class="subtitle">{{ isEdit ? 'Update the task details below' : 'Fill in the details to add a new task' }}</p>
+        </div>
       </div>
-      <div>
-        <h2>{{ isEdit ? 'Edit Task' : 'Create New Task' }}</h2>
-        <p class="subtitle">{{ isEdit ? 'Update the task details below' : 'Fill in the details to add a new task' }}</p>
-      </div>
-      <button mat-icon-button class="close-btn" (click)="onCancel()">
+      <button mat-icon-button class="close-btn" (click)="onCancel()" aria-label="Close dialog">
         <mat-icon>close</mat-icon>
       </button>
     </div>
   
     <mat-divider></mat-divider>
   
-    <!-- Form -->
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="task-form">
-      <!-- Title -->
+      
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Title</mat-label>
         <input matInput formControlName="title" placeholder="Enter a descriptive title" autofocus />
-        <mat-icon matPrefix>title</mat-icon>
+        <mat-icon matPrefix class="form-prefix-icon">title</mat-icon>
         <mat-error *ngIf="titleControl?.invalid && titleControl?.touched">
           <span *ngIf="titleControl?.hasError('required')">Title is required</span>
-          <span *ngIf="titleControl?.hasError('minlength')">At least 3 characters</span>
+          <span *ngIf="titleControl?.hasError('minlength')">Must be at least 3 characters</span>
         </mat-error>
       </mat-form-field>
   
-      <!-- Description -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Description</mat-label>
-        <textarea matInput formControlName="description" rows="3" placeholder="Add any extra details…"></textarea>
-        <mat-icon matPrefix>description</mat-icon>
+        <textarea matInput formControlName="description" rows="4" placeholder="Add any extra details…"></textarea>
+        <mat-icon matPrefix class="form-prefix-icon">notes</mat-icon>
         <mat-hint align="end">{{ (descriptionControl?.value?.length || 0) }}/500</mat-hint>
         <mat-error *ngIf="descriptionControl?.hasError('maxlength')">
-          Maximum 500 characters
+          Maximum 500 characters exceeded
         </mat-error>
       </mat-form-field>
   
-      <!-- Status -->
       <mat-form-field appearance="outline" class="full-width">
         <mat-label>Status</mat-label>
         <mat-select formControlName="status">
+          <mat-select-trigger>
+            <span class="status-option" *ngIf="form.get('status')?.value">
+              <span class="status-dot" [style.background]="getSelectedStatusColor()"></span>
+              {{ getSelectedStatusLabel() }}
+            </span>
+          </mat-select-trigger>
           <mat-option *ngFor="let opt of statusOptions" [value]="opt.value">
             <span class="status-option">
               <span class="status-dot" [style.background]="opt.color"></span>
@@ -50,15 +54,14 @@
             </span>
           </mat-option>
         </mat-select>
-        <mat-icon matPrefix>flag</mat-icon>
+        <mat-icon matPrefix class="form-prefix-icon">rule</mat-icon>
         <mat-error *ngIf="form.get('status')?.invalid && form.get('status')?.touched">
           Please select a status
         </mat-error>
       </mat-form-field>
   
-      <!-- Actions -->
       <div class="form-actions">
-        <button mat-button type="button" (click)="onCancel()" [disabled]="loading">
+        <button mat-button type="button" (click)="onCancel()" [disabled]="loading" class="cancel-btn">
           Cancel
         </button>
         <button
@@ -70,8 +73,8 @@
           [class.loading]="loading"
         >
           <ng-container *ngIf="!loading">
-            <mat-icon>{{ isEdit ? 'save' : 'add' }}</mat-icon>
-            {{ isEdit ? 'Update' : 'Create' }}
+            <mat-icon>{{ isEdit ? 'check' : 'add' }}</mat-icon>
+            {{ isEdit ? 'Save Changes' : 'Create Task' }}
           </ng-container>
           <ng-container *ngIf="loading">
             <mat-spinner diameter="20"></mat-spinner>
