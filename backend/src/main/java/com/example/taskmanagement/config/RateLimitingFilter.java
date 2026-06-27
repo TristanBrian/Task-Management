@@ -11,8 +11,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
-import java.time.Instant;
-import java.util.concurrent.TimeUnit;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
@@ -32,17 +30,13 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String clientIp = request.getRemoteAddr();
         String key = "rate:limiter:" + clientIp;
 
-        // Use Redis atomic increment + expire
         Integer count = redisTemplate.opsForValue().get(key);
         if (count == null) {
-            // First request – set to 1 with TTL
             redisTemplate.opsForValue().set(key, 1, WINDOW);
             count = 1;
         } else {
-            // Increment atomically and get new value
             Long newCount = redisTemplate.opsForValue().increment(key);
             count = newCount.intValue();
-            // Ensure TTL is set (in case it expired but the key still exists)
             redisTemplate.expire(key, WINDOW);
         }
 
@@ -53,5 +47,15 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    // ✅ NEW: Skip rate limiting for public endpoints
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/auth/") ||
+               path.startsWith("/swagger-ui") ||
+               path.startsWith("/v3/api-docs") ||
+               path.equals("/swagger-ui.html");
     }
 }
