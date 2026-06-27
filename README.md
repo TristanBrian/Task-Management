@@ -1,18 +1,22 @@
 # 📋 Task Management System
 
-A full‑stack task management application built with **Spring Boot** (backend) and **Angular** (frontend), featuring JWT authentication, CRUD operations, and a clean Material Design UI.
+A full‑stack task management application built with **Spring Boot** (backend) and **Angular** (frontend), featuring JWT authentication, Redis‑based distributed rate limiting, pagination, comprehensive testing, and a clean Material Design UI.
 
 ---
 
 ## 🚀 Features
 
-- **User Authentication** – Register and login with JWT tokens
+- **User Authentication** – Register and login with JWT tokens (24‑hour expiry)
 - **Task CRUD** – Create, read, update, and delete tasks
 - **Status Management** – Mark tasks as Pending, In Progress, or Completed
-- **Filtering** – Filter tasks by status
-- **Responsive UI** – Modern interface built with Angular Material
-- **RESTful API** – Well‑documented endpoints with Swagger
-- **Docker Support** – Run everything with a single command
+- **Pagination & Filtering** – Fetch tasks with page/size and filter by status (`/api/tasks?page=0&size=10&status=PENDING`)
+- **Data Transfer Objects (DTOs)** – Clean separation between API and domain models with validation
+- **Custom Exception Handling** – Meaningful error responses with proper HTTP status codes
+- **Distributed Rate Limiting** – 100 requests per minute per IP (backed by Redis, scalable across multiple instances)
+- **API Documentation** – Interactive Swagger UI at `/swagger-ui.html`
+- **Testing** – 15+ unit & integration tests with JaCoCo coverage reporting
+- **Responsive UI** – Angular Material + Flex Layout
+- **Docker Support** – Run the entire stack with a single command
 
 ---
 
@@ -23,9 +27,11 @@ A full‑stack task management application built with **Spring Boot** (backend) 
 - Spring Boot 2.7.5
 - Spring Security & JWT
 - Spring Data JPA
-- MariaDB / MySQL
+- MySQL / MariaDB
+- Redis (for rate limiting)
 - Maven
-- Swagger / OpenAPI
+- Swagger / OpenAPI (springdoc‑openapi)
+- JaCoCo (code coverage)
 
 ### Frontend
 - Angular 14+
@@ -40,8 +46,9 @@ A full‑stack task management application built with **Spring Boot** (backend) 
 
 - **Java 11+** – [Download](https://adoptium.net/)
 - **Node.js 14+** – [Download](https://nodejs.org/)
-- **MariaDB / MySQL** – [Installation guide](https://mariadb.org/download/)
-- **Maven** – [Install](https://maven.apache.org/install.html) (or use the included Maven wrapper)
+- **MySQL / MariaDB** – [Installation guide](https://mariadb.org/download/)
+- **Redis** – [Install](https://redis.io/download) or use Docker
+- **Maven** – [Install](https://maven.apache.org/install.html) (or use the wrapper)
 - **Angular CLI** (optional) – `npm install -g @angular/cli`
 
 ---
@@ -56,8 +63,9 @@ cd task-management
 
 ### 2. Backend Setup
 
-#### a) Configure the database
-Create a database (e.g., `taskdb`) and a user with appropriate privileges.
+#### a) Start MySQL and Redis (local or via Docker)
+- **MySQL**: Create a database and user (see below).
+- **Redis**: Run `redis-server` (or `docker run -d --name redis -p 6379:6379 redis:alpine`).
 
 ```sql
 CREATE DATABASE taskdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -66,61 +74,62 @@ GRANT ALL PRIVILEGES ON taskdb.* TO 'taskuser'@'localhost';
 FLUSH PRIVILEGES;
 ```
 
-#### b) Configure `application.properties`
-Edit `backend/src/main/resources/application.properties` – use environment variables or placeholders.
+#### b) Configure environment variables
+Copy `.env.example` (if provided) or set these in your shell:
 
-```properties
-spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/taskdb?useSSL=false&serverTimezone=UTC}
-spring.datasource.username=${DB_USERNAME:taskuser}
-spring.datasource.password=${DB_PASSWORD:your_secure_password}
-jwt.secret=${JWT_SECRET:mySuperSecretKey123!}
-jwt.expiration=${JWT_EXPIRATION:86400000}
+```bash
+export DB_URL="jdbc:mysql://localhost:3306/taskdb?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+export DB_USERNAME="taskuser"
+export DB_PASSWORD="your_secure_password"
+export REDIS_HOST="localhost"
+export REDIS_PORT="6379"
+export JWT_SECRET="your_strong_secret_key"
+export JWT_EXPIRATION="86400000"
 ```
 
-#### c) Run the backend
+Alternatively, you can edit `backend/src/main/resources/application.properties` directly (but don't commit secrets).
+
+#### c) Build and run the backend
 ```bash
 cd backend
-mvn clean install
+mvn clean package
 mvn spring-boot:run
 ```
 
-The backend will start at `http://localhost:8080`.  
-Swagger UI is available at `http://localhost:8080/swagger-ui.html`.
+The backend will be available at `http://localhost:8080`.  
+Swagger UI: `http://localhost:8080/swagger-ui.html`
 
 ---
 
 ### 3. Frontend Setup
 
-#### a) Install dependencies
 ```bash
 cd frontend
 npm install
-```
-
-#### b) Configure API endpoint
-Environment files are in `frontend/src/environments/`.  
-For development, `environment.ts` already points to `http://localhost:8080/api`.
-
-#### c) Run the frontend
-```bash
-npm start    # or ng serve
+npm start   # or ng serve
 ```
 
 The frontend will be served at `http://localhost:4200`.
 
 ---
 
-## 🐳 Docker (Alternative)
+## 🐳 Docker Compose (All Services)
 
-Run the entire stack with Docker Compose:
+The project includes a `docker-compose.yml` that runs MySQL, Redis, the backend, and the frontend together.
 
 ```bash
-docker-compose up -d --build
+# Build JAR first (required for Docker)
+cd backend && mvn clean package && cd ..
+
+# Start all containers
+docker compose up -d --build
 ```
 
-- Frontend: `http://localhost`
-- Backend API: `http://localhost:8080`
-- Database: MySQL on port `3306`
+- **Frontend**: `http://localhost`
+- **Backend API**: `http://localhost:8080`
+- **Swagger**: `http://localhost:8080/swagger-ui.html`
+- **MySQL**: `localhost:3306` (or `3307` if you changed it)
+- **Redis**: `localhost:6379`
 
 ---
 
@@ -128,26 +137,31 @@ docker-compose up -d --build
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_URL` | `jdbc:mysql://localhost:3306/taskdb?...` | JDBC database URL |
-| `DB_USERNAME` | `taskuser` | Database username |
-| `DB_PASSWORD` | `your_secure_password` | Database password |
-| `JWT_SECRET` | `mySuperSecretKey123!` | Secret key for signing JWTs |
-| `JWT_EXPIRATION` | `86400000` | Token validity (ms) |
+| `DB_URL` | `jdbc:mysql://localhost:3306/taskdb?...` | JDBC URL for MySQL |
+| `DB_USERNAME` | `root` | Database username |
+| `DB_PASSWORD` | `root` | Database password |
+| `REDIS_HOST` | `localhost` | Redis server host |
+| `REDIS_PORT` | `6379` | Redis server port |
+| `JWT_SECRET` | `mySuperSecretKey123!` | Secret for signing JWTs (change in production!) |
+| `JWT_EXPIRATION` | `86400000` | Token validity in milliseconds (24h) |
+| `RATE_LIMIT` | `100` | Requests per minute per IP (configurable) |
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Quality
 
 ### Backend
 ```bash
 cd backend
-mvn test
+mvn clean test
 ```
+- **JaCoCo coverage report** – available at `target/site/jacoco/index.html`
+- **Integration tests** – use H2 in‑memory database and spin up a test context
 
 ### Frontend
 ```bash
 cd frontend
-ng test    # or npm test
+ng test --watch=false --code-coverage
 ```
 
 ---
@@ -156,36 +170,54 @@ ng test    # or npm test
 
 ```
 task-management/
-├── backend/                     # Spring Boot
-│   ├── src/main/java/...        # Java source
-│   ├── src/main/resources/      # Properties, static
+├── backend/                         # Spring Boot backend
+│   ├── src/main/java/...            # Application code
+│   ├── src/test/java/...            # Unit & integration tests
+│   ├── src/main/resources/          # Properties, static files
 │   └── pom.xml
-├── frontend/                    # Angular
-│   ├── src/app/                 # Components, services
-│   ├── src/environments/        # Environment config
+├── frontend/                        # Angular frontend
+│   ├── src/app/                     # Components, services
+│   ├── src/environments/            # Environment configs
 │   ├── angular.json
 │   └── package.json
-├── docker-compose.yml
+├── docker-compose.yml               # Full stack orchestration
 └── README.md
 ```
 
 ---
 
-## 📬 API Endpoints
+## 📬 API Endpoints (All under `/api`)
 
-All endpoints are prefixed with `/api`.
+| Method | Endpoint | Description | Authentication |
+|--------|----------|-------------|----------------|
+| POST   | `/auth/register` | Register a new user | Public |
+| POST   | `/auth/login`    | Login – returns JWT | Public |
+| GET    | `/tasks`         | Get paginated tasks (supports `page`, `size`, `status`, `sort`) | JWT required |
+| POST   | `/tasks`         | Create a new task | JWT required |
+| PUT    | `/tasks/{id}`    | Update a task (authorisation: only owner) | JWT required |
+| DELETE | `/tasks/{id}`    | Delete a task (authorisation: only owner) | JWT required |
 
-| Method | Endpoint              | Description                |
-|--------|-----------------------|----------------------------|
-| POST   | `/auth/login`         | Login – returns JWT        |
-| POST   | `/auth/register`      | Register new user          |
-| GET    | `/tasks`              | Get all tasks for user     |
-| GET    | `/tasks/status/{status}` | Filter tasks by status   |
-| POST   | `/tasks`              | Create a new task          |
-| PUT    | `/tasks/{id}`         | Update an existing task    |
-| DELETE | `/tasks/{id}`         | Delete a task              |
+> **Pagination example:** `/api/tasks?page=0&size=10&status=PENDING&sort=createdAt,desc`
 
-> Full API documentation is available via Swagger at `/swagger-ui.html`.
+---
+
+## 🔒 Security
+
+- Passwords hashed with BCrypt.
+- JWT tokens are signed and validated.
+- CORS configured to allow frontend origins.
+- Rate limiting protects against abuse (100 requests/minute per IP).
+
+---
+
+## 🚀 Production Readiness
+
+- [x] Redis‑based distributed rate limiting
+- [x] Comprehensive test suite with JaCoCo coverage
+- [x] Swagger/OpenAPI documentation
+- [x] Docker containerisation
+- [x] Environment‑based configuration
+- [x] Custom exception handling with meaningful HTTP statuses
 
 ---
 
@@ -210,7 +242,8 @@ This project is licensed under the MIT License – see the [LICENSE](LICENSE) fi
 - [Spring Boot](https://spring.io/projects/spring-boot)
 - [Angular](https://angular.io/)
 - [Angular Material](https://material.angular.io/)
-- [MariaDB](https://mariadb.org/)
+- [Redis](https://redis.io/)
+- [Swagger/OpenAPI](https://swagger.io/)
 
 ---
 
