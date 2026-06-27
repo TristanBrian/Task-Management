@@ -4,6 +4,18 @@ A full‑stack task management application built with **Spring Boot** (backend) 
 
 ---
 
+## 🚀 Live Demo
+
+The backend is live on Render:
+
+- **API Base URL:** [https://task-management-dir0.onrender.com](https://task-management-dir0.onrender.com)
+- **Swagger UI:** [https://task-management-dir0.onrender.com/swagger-ui.html](https://task-management-dir0.onrender.com/swagger-ui.html)
+- **OpenAPI JSON:** [https://task-management-dir0.onrender.com/v3/api-docs](https://task-management-dir0.onrender.com/v3/api-docs)
+
+The rate limiter is active (100 requests per minute per IP) – try it with the provided endpoints.
+
+---
+
 ## 🚀 Features
 
 - **User Authentication** – Register and login with JWT tokens (24‑hour expiry)
@@ -17,6 +29,7 @@ A full‑stack task management application built with **Spring Boot** (backend) 
 - **Testing** – 15+ unit & integration tests with JaCoCo coverage reporting
 - **Responsive UI** – Angular Material + Flex Layout
 - **Docker Support** – Run the entire stack with a single command
+- **Deployed on Render** – Publicly accessible backend with PostgreSQL and Redis
 
 ---
 
@@ -27,8 +40,8 @@ A full‑stack task management application built with **Spring Boot** (backend) 
 - Spring Boot 2.7.5
 - Spring Security & JWT
 - Spring Data JPA
-- MySQL / MariaDB
-- Redis (for rate limiting)
+- PostgreSQL (production) / MySQL (development)
+- Redis (distributed rate limiting)
 - Maven
 - Swagger / OpenAPI (springdoc‑openapi)
 - JaCoCo (code coverage)
@@ -137,14 +150,18 @@ docker compose up -d --build
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DB_URL` | `jdbc:mysql://localhost:3306/taskdb?...` | JDBC URL for MySQL |
+| `DB_URL` | `jdbc:mysql://localhost:3306/taskdb?...` | JDBC URL for MySQL (or PostgreSQL) |
 | `DB_USERNAME` | `root` | Database username |
 | `DB_PASSWORD` | `root` | Database password |
-| `REDIS_HOST` | `localhost` | Redis server host |
+| `REDIS_URL` | (optional) | Redis connection string (e.g., `rediss://...`) – overrides host/port/password |
+| `REDIS_HOST` | `localhost` | Redis server host (if using separate variables) |
 | `REDIS_PORT` | `6379` | Redis server port |
+| `REDIS_PASSWORD` | (optional) | Redis password (if any) |
 | `JWT_SECRET` | `mySuperSecretKey123!` | Secret for signing JWTs (change in production!) |
 | `JWT_EXPIRATION` | `86400000` | Token validity in milliseconds (24h) |
 | `RATE_LIMIT` | `100` | Requests per minute per IP (configurable) |
+
+> **Note:** In production (Render), we use `REDIS_URL` with the `rediss://` scheme for TLS.
 
 ---
 
@@ -157,8 +174,6 @@ mvn clean test
 ```
 - **JaCoCo coverage report** – available at `target/site/jacoco/index.html`
 - **Integration tests** – use H2 in‑memory database and spin up a test context
-
-![Task Management App Screenshot](screen/test1.png)
 
 ### Frontend
 ```bash
@@ -208,9 +223,10 @@ task-management/
 - Passwords hashed with BCrypt.
 - JWT tokens are signed and validated.
 - CORS configured to allow frontend origins.
-- Rate limiting protects against abuse (100 requests/minute per IP).
+- Rate limiting protects against abuse (100 requests/minute per IP) – works across multiple instances via Redis.
 
 ---
+
 ![Task Management App Screenshot](screen/test.png)
 
 ## 🚀 Production Readiness
@@ -221,6 +237,7 @@ task-management/
 - [x] Docker containerisation
 - [x] Environment‑based configuration
 - [x] Custom exception handling with meaningful HTTP statuses
+- [x] Deployed on Render with PostgreSQL and Upstash Redis
 
 ---
 
@@ -247,6 +264,8 @@ This project is licensed under the MIT License – see the [LICENSE](LICENSE) fi
 - [Angular Material](https://material.angular.io/)
 - [Redis](https://redis.io/)
 - [Swagger/OpenAPI](https://swagger.io/)
+- [Render](https://render.com/) – for hosting the backend
+- [Upstash](https://upstash.com/) – for free Redis hosting
 
 ---
 
