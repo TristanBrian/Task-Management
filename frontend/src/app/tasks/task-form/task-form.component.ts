@@ -28,7 +28,6 @@ export class TaskFormComponent {
     @Inject(MAT_DIALOG_DATA) public data: { task?: Task } | null,
     private snackBar: MatSnackBar
   ) {
-    // Explicitly casting to Partial<Task> fixes the compilation error
     const currentTask = (data?.task || {}) as Partial<Task>;
     this.isEdit = !!currentTask.id;
 
@@ -39,6 +38,7 @@ export class TaskFormComponent {
     });
   }
 
+  // Helpers for template
   get titleControl() { return this.form.get('title'); }
   get descriptionControl() { return this.form.get('description'); }
 
@@ -57,10 +57,10 @@ export class TaskFormComponent {
       this.form.markAllAsTouched();
       return;
     }
-    
+
     this.loading = true;
     const taskData = this.form.value;
-    
+
     const operation = this.isEdit && this.data?.task?.id
       ? this.taskService.updateTask(this.data.task.id, taskData)
       : this.taskService.createTask(taskData);
@@ -68,7 +68,10 @@ export class TaskFormComponent {
     operation.subscribe({
       next: () => {
         this.loading = false;
-        this.showSnackBar(this.isEdit ? '✅ Task updated successfully' : '✅ Task created successfully', 'success-snackbar');
+        this.showSnackBar(
+          this.isEdit ? '✅ Task updated successfully' : '✅ Task created successfully',
+          'success-snackbar'
+        );
         this.dialogRef.close(true);
       },
       error: (err) => {
