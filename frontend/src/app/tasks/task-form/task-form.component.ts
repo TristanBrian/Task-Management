@@ -38,7 +38,6 @@ export class TaskFormComponent {
     });
   }
 
-  // Helpers for template
   get titleControl() { return this.form.get('title'); }
   get descriptionControl() { return this.form.get('description'); }
 

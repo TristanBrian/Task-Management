@@ -1,4 +1,3 @@
-// Variables
 $primary: #3f51b5;
 $primary-light: #e8eaf6;
 $text-dark: #1a1a1a;
@@ -89,14 +88,12 @@ $transition: 0.2s ease;
     width: 100%;
   }
 
-  // Style material icons as prefix
   mat-icon[matPrefix] {
     margin-right: 10px;
     color: $text-secondary;
     font-size: 20px;
   }
 
-  // Status display in select trigger
   .status-display {
     display: flex;
     align-items: center;
