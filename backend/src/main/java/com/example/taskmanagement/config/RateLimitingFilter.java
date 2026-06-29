@@ -18,7 +18,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     private static final int LIMIT = 100;   // requests per minute
     private static final Duration WINDOW = Duration.ofMinutes(1);
 
-    @Autowired
+    @Autowired(required = false) // if Redis is not available, don't fail
     private RedisTemplate<String, Long> redisTemplate;
 
     @Override
@@ -27,34 +27,47 @@ public class RateLimitingFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
-        // Get real client IP from X-Forwarded-For header
-        String clientIp = request.getHeader("X-Forwarded-For");
-        if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
-            clientIp = request.getRemoteAddr();
-        } else {
-            // In case of multiple IPs, take the first one
-            clientIp = clientIp.split(",")[0].trim();
-        }
-
-        String key = "rate:limiter:" + clientIp;
-
-        // Atomic increment – creates key with 1 if it doesn't exist
-        Long count = redisTemplate.opsForValue().increment(key);
-        // Set TTL only on first request
-        if (count == 1) {
-            redisTemplate.expire(key, WINDOW);
-        }
-
-        // Log for debugging (visible in Render logs)
-        logger.info("Rate limit count for IP " + clientIp + ": " + count);
-
-        if (count > LIMIT) {
-            response.setStatus(429);
-            response.getWriter().write("Too many requests – rate limit exceeded");
+        // If Redis is not configured, skip rate limiting entirely.
+        if (redisTemplate == null) {
+            logger.warn("❌ RedisTemplate not available – rate limiting disabled");
+            filterChain.doFilter(request, response);
             return;
         }
 
-        filterChain.doFilter(request, response);
+        try {
+            // Get real client IP from X-Forwarded-For header
+            String clientIp = request.getHeader("X-Forwarded-For");
+            if (clientIp == null || clientIp.isEmpty() || "unknown".equalsIgnoreCase(clientIp)) {
+                clientIp = request.getRemoteAddr();
+            } else {
+                clientIp = clientIp.split(",")[0].trim();
+            }
+
+            String key = "rate:limiter:" + clientIp;
+
+            // Atomic increment – creates key with 1 if it doesn't exist
+            Long count = redisTemplate.opsForValue().increment(key);
+            // Set TTL only on first request
+            if (count == 1) {
+                redisTemplate.expire(key, WINDOW);
+            }
+
+            logger.info("Rate limit count for IP " + clientIp + ": " + count);
+
+            if (count > LIMIT) {
+                response.setStatus(429);
+                response.getWriter().write("Too many requests – rate limit exceeded");
+                return;
+            }
+
+            filterChain.doFilter(request, response);
+
+        } catch (Exception e) {
+            // If Redis fails (connection, timeout, etc.), allow the request and log the error.
+            logger.error("❌ Redis error in rate limiter: " + e.getMessage(), e);
+            // Fallback: allow the request without rate limiting
+            filterChain.doFilter(request, response);
+        }
     }
 
     // Skip rate limiting for public endpoints (registration, login, Swagger)

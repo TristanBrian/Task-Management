@@ -31,17 +31,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+        // Log every request that reaches this filter
+        logger.info("🔍 JWT Filter invoked for URI: " + request.getRequestURI());
+
         String authHeader = request.getHeader("Authorization");
         String token = null;
         String username = null;
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
+            logger.info("✅ Token extracted");
             try {
                 username = jwtUtil.extractUsername(token);
+                logger.info("✅ Username extracted: " + username);
             } catch (Exception e) {
-                logger.warn("Invalid JWT token");
+                logger.warn("❌ Invalid JWT token: " + e.getMessage());
             }
+        } else {
+            logger.warn("⛔ No Authorization header or invalid format.");
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -51,8 +58,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                logger.info("✅ Authentication set for user " + username);
+            } else {
+                logger.warn("❌ Token validation failed for " + username);
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }

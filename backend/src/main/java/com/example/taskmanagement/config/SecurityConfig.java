@@ -12,6 +12,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -51,8 +52,12 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/tasks/**").authenticated()
                 .anyRequest().authenticated()
             .and()
-            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // 🔥 JWT filter runs early (before LogoutFilter) to authenticate requests.
+            .addFilterBefore(jwtAuthenticationFilter, LogoutFilter.class)
+            // 🔥 Rate limiter is temporarily disabled to isolate the 403 issue.
+            // To re-enable, uncomment the line below and ensure Redis is working.
+            // .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
+            ;
     }
 
     @Bean
