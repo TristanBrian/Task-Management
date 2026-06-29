@@ -74,7 +74,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost", "http://localhost:4200", "http://127.0.0.1"));
+        // Add your live frontend URL(s) here
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost",
+            "http://localhost:4200",
+            "http://127.0.0.1",
+            "https://taskmngapp.netlify.app"   // <-- ADD YOUR NETLIFY URL HERE
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
